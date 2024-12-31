@@ -23,7 +23,7 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 15;
-  animation: fadeout 2s linear forwards;
+  animation: fadeout 6s linear forwards; /* Changed from 2s to 6s */
 }
 
 .loading h2 {
@@ -66,7 +66,7 @@ body {
   height: 100%;
   background: #000;
   transform-origin: left;
-  animation: animate 1s linear forwards;
+  animation: animate 6s linear forwards; /* Changed from 1s to 6s */
 }
 
 @keyframes animate {
@@ -232,4 +232,109 @@ input:checked + .slider:before {
 
 .volume-control.active {
     display: flex;
+}
+
+.new-year-text {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 60px;
+    opacity: 0;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(255,255,255,0.8);
+    z-index: 1000;
+}
+
+.new-year-text.show {
+    animation: fadeIn 2s forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Mobile Responsive Styles */
+@media screen and (max-width: 768px) {
+    .settings-btn {
+        font-size: 24px;
+        top: 15px;
+        right: 15px;
+    }
+
+    .settings-panel {
+        top: 50px;
+        right: 15px;
+        width: 200px;
+        background: rgba(0, 0, 0, 0.9);
+    }
+
+    .setting-item {
+        margin: 15px 0;
+        font-size: 16px;
+    }
+
+    .new-year-text {
+        font-size: 40px;
+        width: 90%;
+    }
+
+    .loading .bar {
+        width: 80%;
+        max-width: 300px;
+    }
+
+    .loading h2 {
+        font-size: 24px;
+    }
+
+    .loading .bar:after {
+        font-size: 16px;
+        letter-spacing: 6px;
+    }
+
+    .watermark h1 {
+        font-size: 12px;
+    }
+}
+
+/* Small Mobile Screens */
+@media screen and (max-width: 480px) {
+    .new-year-text {
+        font-size: 32px;
+    }
+
+    .settings-panel {
+        width: 180px;
+    }
+
+    .setting-item {
+        font-size: 14px;
+    }
+
+    .switch {
+        width: 36px;
+        height: 20px;
+    }
+
+    .slider:before {
+        height: 14px;
+        width: 14px;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(16px);
+    }
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    background: url('bg.png') no-repeat center center fixed;
+    background-size: cover;
+    overflow: hidden;
 }

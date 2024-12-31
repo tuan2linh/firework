@@ -10,6 +10,19 @@ const speedControl = document.getElementById('speedControl');
 const baseTimerTotal = 75;
 const baseLimiterTotal = 5;
 
+// Add these variables at the beginning of the file
+const DISPLAY_DURATION = 36000; // 36 seconds in milliseconds
+const TEXT_DISPLAY_TIME = 15000; // 15 seconds in milliseconds
+const SPECIAL_EFFECT_TIME = 36000; // 26 seconds
+let startTime = null;
+let isDisplaying = true;
+let textDisplayed = false;
+let specialEffectDisplayed = false;
+
+// Add these variables at the beginning with other variables
+let finalExplosionsCreated = false;
+let isFinalDisplay = false;
+
 settingsBtn.addEventListener('click', () => {
     settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
 });
@@ -197,7 +210,7 @@ window.requestAnimFrame = (function () {
     ctx.fill();
   };
   
-  // create particle
+  // Modify the Particle constructor
   function Particle(x, y) {
     this.x = x;
     this.y = y;
@@ -220,9 +233,10 @@ window.requestAnimFrame = (function () {
     this.alpha = 1;
     // set how fast the particle fades out
     this.decay = random(0.005, 0.015); // Giảm decay rate xuống (từ 0.015-0.03 thành 0.005-0.015)
+    this.isFinal = false; // Add this line
   }
   
-  // update particle
+  // Modify the Particle update method
   Particle.prototype.update = function (index) {
     // remove last item in coordinates array
     this.coordinates.pop();
@@ -236,8 +250,8 @@ window.requestAnimFrame = (function () {
     // fade out the particle
     this.alpha -= this.decay;
   
-    // remove the particle once the alpha is low enough, based on the passed in index
-    if (this.alpha <= this.decay) {
+    // Change the removal condition
+    if (this.alpha <= this.decay && !this.isFinal) {
       particles.splice(index, 1);
     }
   };
@@ -262,23 +276,96 @@ window.requestAnimFrame = (function () {
     ctx.stroke();
   };
   
-  // create particle group/explosion
-  function createParticles(x, y) {
-    // Play firework explosion sound
-    const audio = document.getElementById('fireworkSound');
-    audio.currentTime = 0; // Reset sound to start
-    audio.play();
+  // Modify the createParticles function
+  function createParticles(x, y, isFinal = false) {
+    if (isDisplaying) {  // Chỉ phát âm thanh khi đang trong thời gian hiển thị
+        const audio = document.getElementById('fireworkSound');
+        if (!audio.muted && audio.paused) {  // Chỉ phát lại nếu âm thanh đã kết thúc và không bị tắt tiếng
+            audio.currentTime = 0;
+            audio.play().catch(err => console.log('Audio play failed:', err));
+        }
+    }
     
-    // increase the particle count for a bigger explosion, beware of the canvas performance hit with the increased particles though
     var particleCount = 250; // Giảm số lượng hạt (từ 325 xuống 250) để tối ưu hiệu năng
     while (particleCount--) {
-      particles.push(new Particle(x, y));
+        const particle = new Particle(x, y);
+        particle.isFinal = isFinal;
+        if (isFinal) {
+            particle.decay = 0; // Prevent fading for final particles
+            particle.alpha = 0.8; // Set a constant alpha for final particles
+        }
+        particles.push(particle);
     }
   }
   
-  // main demo loop
+  // Sửa lại hàm để bắn pháo hoa thẳng lên
+  function launchRandomFirework() {
+    const startX = random(cw * 0.2, cw * 0.8);
+    // Bắn thẳng lên bằng cách sử dụng cùng một vị trí X cho điểm bắt đầu và kết thúc
+    fireworks.push(new Firework(
+        startX,      // điểm bắt đầu X
+        ch,          // điểm bắt đầu Y (dưới cùng)
+        startX,      // điểm kết thúc X (cùng vị trí với điểm bắt đầu)
+        random(ch * 0.2, ch * 0.5)  // điểm kết thúc Y (độ cao ngẫu nhiên)
+    ));
+  }
+
+  // Add this new function before the loop function
+  function createMultipleExplosions() {
+    const numExplosions = 10;
+    for (let i = 0; i < numExplosions; i++) {
+        // Calculate random positions that are well-distributed across the screen
+        const x = random(cw * 0.1, cw * 0.9);
+        const y = random(ch * 0.2, ch * 0.7);
+        createParticles(x, y);
+    }
+  }
+
+  // Modify the loop function
   function loop() {
-    // this function will run endlessly with requestAnimationFrame
+    if (!startTime) {
+        startTime = Date.now();
+        // Bắn ngay một loạt pháo hoa khi bắt đầu
+        for(let i = 0; i < 3; i++) {
+            launchRandomFirework();
+        }
+    }
+    
+    const currentTime = Date.now();
+    const elapsedTime = currentTime - startTime;
+
+    // Special effect at 26 seconds
+    if (elapsedTime >= SPECIAL_EFFECT_TIME && !specialEffectDisplayed) {
+        specialEffectDisplayed = true;
+        createMultipleExplosions();
+    }
+
+    // Show text after 15 seconds
+    if (elapsedTime >= TEXT_DISPLAY_TIME && !textDisplayed) {
+        textDisplayed = true;
+        const newYearText = document.createElement('div');
+        newYearText.className = 'new-year-text';
+        newYearText.innerHTML = 'Happy New Year<br>2025';
+        document.body.appendChild(newYearText);
+        setTimeout(() => newYearText.classList.add('show'), 100);
+    }
+
+    // Create final explosions at exactly 36000ms
+    if (elapsedTime >= DISPLAY_DURATION && !finalExplosionsCreated) {
+        finalExplosionsCreated = true;
+        isFinalDisplay = true;
+        // Clear existing particles and fireworks
+        particles.length = 0;
+        fireworks.length = 0;
+        
+        // Create 10 final explosions
+        for (let i = 0; i < 10; i++) {
+            const x = random(cw * 0.1, cw * 0.9);
+            const y = random(ch * 0.2, ch * 0.7);
+            createParticles(x, y, true);
+        }
+    }
+
     requestAnimFrame(loop);
   
     // increase the hue to get different colored fireworks over time
@@ -295,42 +382,46 @@ window.requestAnimFrame = (function () {
     // lighter creates bright highlight points as the fireworks and particles overlap each other
     ctx.globalCompositeOperation = "lighter";
   
-    // loop over each firework, draw it, update it
-    var i = fireworks.length;
-    while (i--) {
-      fireworks[i].draw();
-      fireworks[i].update(i);
+    // Update fireworks only if not in final display
+    if (!isFinalDisplay) {
+        var i = fireworks.length;
+        while (i--) {
+            fireworks[i].draw();
+            fireworks[i].update(i);
+        }
     }
   
-    // loop over each particle, draw it, update it
+    // Always update particles
     var i = particles.length;
     while (i--) {
       particles[i].draw();
       particles[i].update(i);
     }
   
-    // launch fireworks automatically
-    if (timerTick >= timerTotal) {
-        if (!mousedown) {
-            const startX = random(0, cw);
-            const targetY = random(ch/4, ch/2.5); // Điều chỉnh phạm vi độ cao nổ
-            fireworks.push(
-                new Firework(startX, ch, startX, targetY)
-            );
-            timerTick = 0;
+    // Only continue with normal firework generation if not in final display
+    if (!isFinalDisplay) {
+        // Sửa lại phần tự động bắn
+        if (timerTick >= timerTotal) {
+            if (isDisplaying) {
+                const numFireworks = Math.floor(random(1, 4));
+                for (let i = 0; i < numFireworks; i++) {
+                    launchRandomFirework();
+                }
+                timerTick = 0;
+            }
+        } else {
+            timerTick++;
         }
-    } else {
-        timerTick++;
-    }
 
-    // Sửa đổi phần bắn khi click chuột
-    if (limiterTick >= limiterTotal) {
-        if (mousedown) {
-            fireworks.push(new Firework(mx, ch, mx, my));
-            limiterTick = 0;
+        // Sửa đổi phần bắn khi click chuột
+        if (limiterTick >= limiterTotal) {
+            if (mousedown) {
+                fireworks.push(new Firework(mx, ch, mx, my));
+                limiterTick = 0;
+            }
+        } else {
+            limiterTick++;
         }
-    } else {
-        limiterTick++;
     }
   }
   
@@ -354,5 +445,79 @@ window.requestAnimFrame = (function () {
     mousedown = false;
   });
   
+  // Add after the existing mouse event bindings
+
+// Touch event bindings for mobile
+canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    mousedown = true;
+    const touch = e.touches[0];
+    mx = touch.pageX - canvas.offsetLeft;
+    my = touch.pageY - canvas.offsetTop;
+});
+
+canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    mx = touch.pageX - canvas.offsetLeft;
+    my = touch.pageY - canvas.offsetTop;
+});
+
+canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    mousedown = false;
+});
+
+// Add touch event for settings button
+settingsBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+});
+
+// Close settings panel when touching outside
+document.addEventListener('touchstart', (e) => {
+    if (!settingsPanel.contains(e.target) && e.target !== settingsBtn) {
+        settingsPanel.style.display = 'none';
+    }
+});
+
+// Update orientation handling
+window.addEventListener('orientationchange', function() {
+    // Update canvas dimensions on orientation change
+    setTimeout(() => {
+        cw = window.innerWidth;
+        ch = window.innerHeight;
+        canvas.width = cw;
+        canvas.height = ch;
+    }, 200);
+});
+
   // once the window loads, we are ready for some fireworks!
-  window.onload = loop;
+  window.onload = function() {
+    // Khởi tạo âm thanh
+    const fireworkSound = document.getElementById('fireworkSound');
+    fireworkSound.volume = volumeControl.value / 100;
+    fireworkSound.muted = false;
+    audioToggle.checked = true;
+    
+    // Thêm xử lý cho mobile
+    document.addEventListener('touchstart', function() {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        context.resume().then(() => {
+            console.log('Audio context started');
+        });
+    }, false);
+
+    // Tự động phát âm thanh khi trang web load xong
+    fireworkSound.play().catch(err => {
+        console.log('Initial audio play failed:', err);
+        // Thử phát lại sau khi có tương tác người dùng
+        document.addEventListener('click', function initAudio() {
+            fireworkSound.play();
+            document.removeEventListener('click', initAudio);
+        }, {once: true});
+    });
+    
+    // Bắt đầu animation pháo hoa
+    loop();
+}
