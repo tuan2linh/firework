@@ -1,0 +1,40 @@
+<html>
+
+<head>
+  <title>Happy New Year 2025</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="settings-btn">&#9776;</div>
+  <div class="settings-panel">
+    <div class="setting-item">
+      <label for="audioToggle">Sound Effects</label>
+      <label class="switch">
+        <input type="checkbox" id="audioToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="setting-item volume-control active">
+      <label for="volumeControl">Volume</label>
+      <input type="range" id="volumeControl" min="0" max="100" value="100">
+    </div>
+    <div class="setting-item">
+      <label for="speedControl">Speed</label>
+      <input type="range" id="speedControl" min="50" max="150" value="100">
+    </div>
+  </div>
+  <main class="container">
+    <section class="counter"></section>
+  </main>
+  <canvas id="canvas"></canvas>
+  <div class="loading">
+    <h2>2024</h2>
+    <div class="bar"></div>
+    <h2>2025</h2>
+  </div>
+  <audio id="fireworkSound" src="explosion0.mp3" preload="auto"></audio>
+  <script src="script.js"></script>
+</body>
+
+</html>
